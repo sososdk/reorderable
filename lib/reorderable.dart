@@ -1,7 +1,5 @@
 library reorderable;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'src/reorderable_sliver.dart' show ReorderableSliverChildBuilderDelegate;
+export 'src/reorderable_sliver_grid.dart' show ReorderableSliverGrid;
+export 'src/sliver.dart';
