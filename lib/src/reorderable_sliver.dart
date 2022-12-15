@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -555,7 +556,6 @@ abstract class ReorderableSliverMultiBoxAdaptorElement
       _currentlyUpdatingChildIndex = null;
       _currentlyInsertChildIndex = null;
       _currentlyInsertTargetChildIndex = null;
-      markNeedsBuild();
     }
   }
 
@@ -635,8 +635,7 @@ abstract class ReorderableSliverMultiBoxAdaptorWidget
 
 int _kDefaultSemanticIndexCallback(Widget _, int localIndex) => localIndex;
 
-typedef ReorderableIndexContextCallback = Function(
-    int index, ReorderableParentData? data);
+typedef ReorderableIndexContextCallback = Function(int index, ItemData? data);
 
 abstract class ReorderableSliverChildDelegate extends SliverChildDelegate {
   const ReorderableSliverChildDelegate(this.onReorder,
@@ -657,22 +656,22 @@ abstract class ReorderableSliverChildDelegate extends SliverChildDelegate {
       onDragFinish: () {
         reorderableData.reorder(onReorder);
         context.visitChildElements((element) {
-          final data =
-              element.renderObject!.parentData as ReorderableParentData;
-          // final data = ReorderableItemInheritedWidget.of(element)?.itemData;
-          data.resetState();
+          // final data =
+          //     element.renderObject!.parentData as ReorderableParentData;
+          final data = ReorderableItemInheritedWidget.of(element)?.itemData;
+          data?.resetState();
         });
         context.findRenderObject()?.markNeedsLayout();
       },
       onDragCallback: (index) {
         print('onDragCallback');
         context.visitChildElements((element) {
-          final data =
-              element.renderObject!.parentData as ReorderableParentData;
           // final data =
-          //     ReorderableItemInheritedWidget.of(element, isDependent: false)!
-          //         .itemData;
-          if (index == data.index) {
+          //     element.renderObject!.parentData as ReorderableParentData;
+          final data =
+              ReorderableItemInheritedWidget.of(element, isDependent: false)!
+                  .itemData;
+          if (index == data.itemIndex) {
             onDrag?.call(index, data);
             return;
           }
@@ -680,12 +679,12 @@ abstract class ReorderableSliverChildDelegate extends SliverChildDelegate {
       },
       onMergeCallback: (index) {
         context.visitChildElements((element) {
-          final data =
-              element.renderObject!.parentData as ReorderableParentData;
           // final data =
-          //     ReorderableItemInheritedWidget.of(element, isDependent: false)!
-          //         .itemData;
-          if (index == data.index) {
+          //     element.renderObject!.parentData as ReorderableParentData;
+          final data =
+              ReorderableItemInheritedWidget.of(element, isDependent: false)!
+                  .itemData;
+          if (index == data.itemIndex) {
             data.toggleMergeTarget();
             onMerge?.call(index, data);
             return;
@@ -1072,60 +1071,60 @@ class ReorderableSliverChildListDelegate
   }
 }
 
-// class ReorderableItemInheritedWidget extends InheritedNotifier {
-//   const ReorderableItemInheritedWidget({
-//     Key? key,
-//     required this.itemData,
-//     required Widget child,
-//   }) : super(key: key, child: child, notifier: itemData);
-//
-//   final ItemData itemData;
-//
-//   static ReorderableItemInheritedWidget? of(BuildContext context,
-//       {bool isDependent = true}) {
-//     if (context is Element) {
-//       if (context.widget is ReorderableItemInheritedWidget) {
-//         isDependent = false;
-//       }
-//     }
-//     if (isDependent) {
-//       return context
-//           .dependOnInheritedWidgetOfExactType<ReorderableItemInheritedWidget>();
-//     } else {
-//       return context
-//           .getElementForInheritedWidgetOfExactType<
-//               ReorderableItemInheritedWidget>()
-//           ?.widget as ReorderableItemInheritedWidget?;
-//     }
-//   }
-// }
-//
-// class ItemData extends ChangeNotifier {
-//   int itemIndex = -1;
-//   int? renderObjectIndex = -1;
-//   Offset currentOffset = const Offset(-1.0, -1.0);
-//   bool isMergeTarget = false;
-//
-//   void setRenderObjectIndex(int? index) {
-//     renderObjectIndex = index;
-//     notifyListeners();
-//   }
-//
-//   void toggleMergeTarget() {
-//     isMergeTarget = !isMergeTarget;
-//     notifyListeners();
-//   }
-//
-//   void resetState() {
-//     isMergeTarget = false;
-//     notifyListeners();
-//   }
-//
-//   @override
-//   String toString() {
-//     return 'itemIndex is $itemIndex , renderObjectIndex is $renderObjectIndex , currentOffset is $currentOffset , isMergeTarget is $isMergeTarget';
-//   }
-// }
+class ReorderableItemInheritedWidget extends InheritedNotifier {
+  const ReorderableItemInheritedWidget({
+    Key? key,
+    required this.itemData,
+    required Widget child,
+  }) : super(key: key, child: child, notifier: itemData);
+
+  final ItemData itemData;
+
+  static ReorderableItemInheritedWidget? of(BuildContext context,
+      {bool isDependent = true}) {
+    if (context is Element) {
+      if (context.widget is ReorderableItemInheritedWidget) {
+        isDependent = false;
+      }
+    }
+    if (isDependent) {
+      return context
+          .dependOnInheritedWidgetOfExactType<ReorderableItemInheritedWidget>();
+    } else {
+      return context
+          .getElementForInheritedWidgetOfExactType<
+              ReorderableItemInheritedWidget>()
+          ?.widget as ReorderableItemInheritedWidget?;
+    }
+  }
+}
+
+class ItemData extends ChangeNotifier {
+  int itemIndex = -1;
+  int? renderObjectIndex = -1;
+  Offset currentOffset = const Offset(-1.0, -1.0);
+  bool isMergeTarget = false;
+
+  void setRenderObjectIndex(int? index) {
+    renderObjectIndex = index;
+    notifyListeners();
+  }
+
+  void toggleMergeTarget() {
+    isMergeTarget = !isMergeTarget;
+    notifyListeners();
+  }
+
+  void resetState() {
+    isMergeTarget = false;
+    notifyListeners();
+  }
+
+  @override
+  String toString() {
+    return 'itemIndex is $itemIndex , renderObjectIndex is $renderObjectIndex , currentOffset is $currentOffset , isMergeTarget is $isMergeTarget';
+  }
+}
 
 typedef ReorderCallback = Function(int toIndex, int fromIndex);
 typedef ReorderIndexCallback = void Function(int index);
@@ -1164,30 +1163,33 @@ class _ReorderableAnimatedItemState extends State<ReorderableAnimatedItem>
         .findAncestorRenderObjectOfType<RenderIndexedSemantics>()
         ?.parentData as ReorderableParentData;
 
-    // final itemData = ReorderableItemInheritedWidget.of(context)?.itemData;
+    final itemData = ReorderableItemInheritedWidget.of(context)?.itemData;
     final reorderableData =
         context.findAncestorRenderObjectOfType<ReorderableData>();
 
     var transformX = 0.0;
     var transformY = 0.0;
 
-    if (itemParentData.currentOffset.dx == -1 ||
-        itemParentData.currentOffset.dy == -1) {
+    if (itemParentData == null ||
+        itemData == null ||
+        itemData.currentOffset.dx == -1 ||
+        itemData.currentOffset.dy == -1) {
     } else {
-      transformX = (itemParentData.crossAxisOffset ?? 0) -
-          (itemParentData.currentOffset.dx);
+      transformX =
+          (itemParentData.crossAxisOffset ?? 0) - (itemData.currentOffset.dx);
 
-      transformY = (itemParentData.layoutOffset ?? 0) -
-          (itemParentData.currentOffset.dy);
+      transformY =
+          (itemParentData.layoutOffset ?? 0) - (itemData.currentOffset.dy);
     }
-    final transformMatrix =
+
+    var transformMatrix =
         Matrix4.translationValues(-transformX, -transformY, 0.0);
 
     if (transformX != 0 || transformY != 0) {
       _isShouldIgnorePoint = true;
     }
 
-    _isMergeTarget = itemParentData.isMergeTarget ?? false;
+    _isMergeTarget = itemData?.isMergeTarget ?? false;
 
     return IgnorePointer(
       ignoring: _isShouldIgnorePoint,
@@ -1209,11 +1211,9 @@ class _ReorderableAnimatedItemState extends State<ReorderableAnimatedItem>
           fit: StackFit.expand,
           children: [
             buildDraggable(
-                widget.index, widget.child, reorderableData, itemParentData),
-            buildReorderDragTarget(
-                widget.index, reorderableData, itemParentData),
-            buildItemFolderDragTarget(
-                widget.index, reorderableData, itemParentData),
+                widget.index, widget.child, reorderableData, itemData),
+            buildReorderDragTarget(widget.index, reorderableData, itemData),
+            buildItemFolderDragTarget(widget.index, reorderableData, itemData),
           ],
         ),
       ),
@@ -1221,7 +1221,7 @@ class _ReorderableAnimatedItemState extends State<ReorderableAnimatedItem>
   }
 
   Widget buildDraggable(int index, Widget child,
-      ReorderableData? reorderableData, ReorderableParentData itemData) {
+      ReorderableData? reorderableData, ItemData? itemData) {
     return LayoutBuilder(builder: (context, constraints) {
       final itemWidget = SizedBox(
         width: constraints.maxWidth,
@@ -1251,18 +1251,21 @@ class _ReorderableAnimatedItemState extends State<ReorderableAnimatedItem>
   }
 
   Widget buildReorderDragTarget(int currentItemIndex,
-      ReorderableData? reorderableData, ReorderableParentData itemData) {
-    return ReorderableDragTarget<ReorderableParentData>(
+      ReorderableData? reorderableData, ItemData? itemData) {
+    return ReorderableDragTarget<ItemData>(
       delayAcceptDuration: const Duration(milliseconds: 200),
-      key: ValueKey(itemData.index),
-      builder: (context, acceptedCandidates, rejectedCandidates) => Container(),
+      key: ValueKey(itemData?.renderObjectIndex),
+      builder: (context, acceptedCandidates, rejectedCandidates) {
+        return Container();
+      },
       onDelayWillAccept: (toAcceptItemData) {
         if (toAcceptItemData != null) {
-          if (toAcceptItemData.index != itemData.index) {
-            reorderableData?.insertIndex = itemData.index!;
+          if (toAcceptItemData.renderObjectIndex !=
+              itemData?.renderObjectIndex) {
+            reorderableData?.insertIndex = itemData?.renderObjectIndex ?? 0;
 
-            widget.onReorderCallback
-                .call(itemData.index!, toAcceptItemData.index!);
+            widget.onReorderCallback.call(itemData?.renderObjectIndex ?? 0,
+                toAcceptItemData.renderObjectIndex ?? 0);
           }
         }
         return toAcceptItemData != null;
@@ -1271,27 +1274,29 @@ class _ReorderableAnimatedItemState extends State<ReorderableAnimatedItem>
   }
 
   Widget buildItemFolderDragTarget(int currentItemIndex,
-      ReorderableData? reorderableData, ReorderableParentData itemData) {
+      ReorderableData? reorderableData, ItemData? itemData) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 30),
-      child: ReorderableDragTarget<ReorderableParentData>(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: ReorderableDragTarget<ItemData>(
         delayAcceptDuration: const Duration(seconds: 1),
         builder: (context, acceptedCandidates, rejectedCandidates) {
           return Container();
         },
         onDelayWillAccept: (toAcceptItemData) {
           if (toAcceptItemData != null) {
-            if (toAcceptItemData.index != itemData.index) {
-              if (itemData.index != null) {
-                widget.onMergeCallback?.call(itemData.index!);
+            if (toAcceptItemData.renderObjectIndex !=
+                itemData?.renderObjectIndex) {
+              if (itemData?.itemIndex != null) {
+                widget.onMergeCallback?.call(itemData!.itemIndex);
               }
             }
           }
           return toAcceptItemData != null;
         },
         onLeave: (leaveTargetData) {
-          if (itemData.isMergeTarget ?? false) {
-            itemData.toggleMergeTarget();
+          print('onLeave target is $leaveTargetData , current is $itemData');
+          if (itemData?.isMergeTarget ?? false) {
+            itemData?.toggleMergeTarget();
           }
         },
       ),

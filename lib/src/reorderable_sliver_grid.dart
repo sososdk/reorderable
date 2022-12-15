@@ -13,25 +13,30 @@ class ReorderableSliverGridMultiBoxAdaptorElement
   @override
   void onFinishLayout() {
     visitChildElements((element) {
-      final parentData =
-          element.renderObject?.parentData as ReorderableParentData;
-      if (parentData.index != null) {
-        final newItemOffset =
-            Offset(parentData.crossAxisOffset!, parentData.layoutOffset!);
-        parentData.currentOffset = newItemOffset;
+      final itemDataInheritedWidget =
+          ReorderableItemInheritedWidget.of(element, isDependent: false);
+      final itemData = itemDataInheritedWidget!.itemData;
+
+      final gridData = element.renderObject?.parentData;
+      if (gridData is SliverGridParentData) {
+        if (gridData.index != null) {
+          final newItemOffset =
+              Offset(gridData.crossAxisOffset!, gridData.layoutOffset!);
+          itemData.currentOffset = newItemOffset;
+        }
       }
     });
   }
 
   @override
   Widget buildChild(int index, Widget child) {
-    return child;
-    // return ReorderableItemInheritedWidget(
-    //   itemData: ItemData()
-    //     ..itemIndex = index
-    //     ..renderObjectIndex = index,
-    //   child: child,
-    // );
+    // return child;
+    return ReorderableItemInheritedWidget(
+      itemData: ItemData()
+        ..itemIndex = index
+        ..renderObjectIndex = index,
+      child: child,
+    );
   }
 
   @override
@@ -43,11 +48,14 @@ class ReorderableSliverGridMultiBoxAdaptorElement
   @override
   void updateChildParentData(Element element, data) {
     final childParentData =
-        element.renderObject?.parentData as ReorderableParentData;
+        element.renderObject?.parentData as SliverGridParentData;
+    final itemData =
+        ReorderableItemInheritedWidget.of(element, isDependent: false)!
+            .itemData;
     final offset = data as Offset;
-    (childParentData as SliverGridParentData).crossAxisOffset = offset.dx;
+    childParentData.crossAxisOffset = offset.dx;
     childParentData.layoutOffset = offset.dy;
-    childParentData.setRenderObjectIndex(childParentData.index);
+    itemData.setRenderObjectIndex(childParentData.index);
   }
 }
 

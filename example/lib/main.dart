@@ -94,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   data.insert(toIndex, data.removeAt(fromIndex));
                 });
               },
+              onMerge: (index, _) {},
               childCount: data.length,
             ),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
