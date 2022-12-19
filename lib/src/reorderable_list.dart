@@ -4,6 +4,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 // ignore_for_file: lines_longer_than_80_chars
@@ -333,7 +334,8 @@ class ReorderableListState extends State<ReorderableList> {
     required PointerDownEvent event,
     required MultiDragGestureRecognizer recognizer,
   }) {
-    _sliverReorderableListKey.currentState!.startItemDragReorder(index: index, event: event, recognizer: recognizer);
+    final list = _sliverReorderableListKey.currentState!;
+    list.startItemDragReorder(index: index, event: event, recognizer: recognizer..onStart = list._dragStart);
   }
 
   /// Cancel any item drag in progress.
@@ -616,9 +618,7 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
 
       if (_items.containsKey(index)) {
         _dragIndex = index;
-        _recognizer = recognizer
-          ..onStart = _dragStart
-          ..addPointer(event);
+        _recognizer = recognizer..addPointer(event);
         _recognizerPointer = event.pointer;
       } else {
         // TODO(darrenaustin): Can we handle this better, maybe scroll to the item?
@@ -948,6 +948,19 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   bool _dragging = false;
 
+  _MergableItemState? __mergableItemState;
+
+  set _mergableItemState(_MergableItemState? value) {
+    assert(__mergableItemState == null || value == null);
+    __mergableItemState = value;
+  }
+
+  bool get mergable => __mergableItemState?.mergable ?? false;
+
+  bool get merging => __mergableItemState?.merging ?? false;
+
+  set merging(bool merging) => __mergableItemState?.merging = merging;
+
   @override
   void initState() {
     _listState = SliverReorderableList.of(context);
@@ -1056,6 +1069,59 @@ class _ReorderableItemState extends State<_ReorderableItem> {
   }
 }
 
+class MergableItem extends StatefulWidget {
+  const MergableItem({
+    super.key,
+    this.enabled = true,
+    required this.child,
+  });
+
+  final bool enabled;
+  final Widget child;
+
+  @override
+  State<MergableItem> createState() => _MergableItemState();
+}
+
+class _MergableItemState extends State<MergableItem> {
+  _ReorderableItemState? _reorderableItemState;
+
+  bool get mergable => widget.enabled;
+
+  bool get merging => _merging;
+
+  set merging(bool merging) {
+    if (mounted) {
+      setState(() {
+        _merging = merging;
+      });
+    }
+  }
+
+  bool _merging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = context.findAncestorStateOfType<_ReorderableItemState>();
+    if (state != null) {
+      state._mergableItemState = this;
+      _reorderableItemState = state;
+    }
+  }
+
+  @override
+  void dispose() {
+    _reorderableItemState?._mergableItemState = null;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}
+
 /// A wrapper widget that will recognize the start of a drag on the wrapped
 /// widget by a [PointerDownEvent], and immediately initiate dragging the
 /// wrapped item to a new location in a reorderable list.
@@ -1110,8 +1176,8 @@ class ReorderableDragStartListener extends StatelessWidget {
   /// By default this returns an [ImmediateMultiDragGestureRecognizer] but
   /// subclasses can use this to customize the drag start gesture.
   @protected
-  MultiDragGestureRecognizer createRecognizer() {
-    return DelayedMultiDragGestureRecognizer(debugOwner: this);
+  MultiDragGestureRecognizer createRecognizer(GestureMultiDragStartCallback onStart) {
+    return ImmediateMultiDragGestureRecognizer(debugOwner: this);
   }
 
   void _startDragging(BuildContext context, PointerDownEvent event) {
@@ -1120,7 +1186,7 @@ class ReorderableDragStartListener extends StatelessWidget {
     list?.startItemDragReorder(
       index: index,
       event: event,
-      recognizer: createRecognizer()..gestureSettings = gestureSettings,
+      recognizer: createRecognizer(list._dragStart)..gestureSettings = gestureSettings,
     );
   }
 }
@@ -1150,11 +1216,22 @@ class ReorderableDelayedDragStartListener extends ReorderableDragStartListener {
     required super.child,
     required super.index,
     super.enabled,
+    this.hapticFeedbackOnStart = true,
   });
 
+  /// Whether haptic feedback should be triggered on drag start.
+  final bool hapticFeedbackOnStart;
+
   @override
-  MultiDragGestureRecognizer createRecognizer() {
-    return DelayedMultiDragGestureRecognizer(debugOwner: this);
+  MultiDragGestureRecognizer createRecognizer(GestureMultiDragStartCallback onStart) {
+    return DelayedMultiDragGestureRecognizer(debugOwner: this)
+      ..onStart = (position) {
+        final result = onStart(position);
+        if (result != null && hapticFeedbackOnStart) {
+          HapticFeedback.mediumImpact();
+        }
+        return result;
+      };
   }
 }
 

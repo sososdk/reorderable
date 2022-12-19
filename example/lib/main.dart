@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart' hide SliverReorderableList, ReorderableDragStartListener;
+import 'package:flutter/material.dart'
+    hide SliverReorderableList, ReorderableDragStartListener, ReorderableDelayedDragStartListener;
 import 'package:reorderable/reorderable.dart';
 
 void main() {
@@ -83,15 +84,17 @@ class _MyHomePageState extends State<MyHomePage> {
           SliverReorderableList(
             itemBuilder: (context, int index) {
               final item = data[index];
-              return ReorderableDragStartListener(
+              return ReorderableDelayedDragStartListener(
                 key: ValueKey(item),
                 index: index,
                 enabled: item % 2 == 1,
-                child: Container(
-                  height: 48,
-                  padding: const EdgeInsets.all(8),
-                  color: item % 2 == 1 ? Colors.lightGreen : Colors.amber,
-                  child: Text('$item'),
+                child: MergableItem(
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.all(8),
+                    color: item % 2 == 1 ? Colors.lightGreen : Colors.amber,
+                    child: Text('$item'),
+                  ),
                 ),
               );
             },
