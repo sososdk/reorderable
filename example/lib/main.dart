@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SliverReorderableList, ReorderableDragStartListener;
 import 'package:reorderable/reorderable.dart';
 
 void main() {
@@ -80,26 +80,45 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: CustomScrollView(
         slivers: [
-          ReorderableSliverGrid(
-            delegate: ReorderableSliverChildBuilderDelegate(
-              (context, index) {
-                final item = data[index];
-                return Container(
-                  color: Colors.black38,
+          SliverReorderableList(
+            itemBuilder: (context, int index) {
+              final item = data[index];
+              return ReorderableDragStartListener(
+                key: ValueKey(item),
+                index: index,
+                enabled: item % 2 == 1,
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.all(8),
+                  color: item % 2 == 1 ? Colors.lightGreen : Colors.amber,
                   child: Text('$item'),
-                );
-              },
-              onReorder: (toIndex, fromIndex) {
-                setState(() {
-                  data.insert(toIndex, data.removeAt(fromIndex));
-                });
-              },
-              onMerge: (index, _) {},
-              childCount: data.length,
-            ),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 100),
-          ),
+                ),
+              );
+            },
+            itemCount: data.length,
+            onReorder: (oldIndex, newIndex) {
+              print('$oldIndex -> $newIndex');
+              if (oldIndex < newIndex) {
+                // removing the item at oldIndex will shorten the list by 1.
+                newIndex -= 1;
+              }
+              final item = data.removeAt(oldIndex);
+              data.insert(newIndex, item);
+            },
+            onReorderStart: (p0) {
+              print('onReorderStart');
+            },
+            onReorderEnd: (p0) {
+              print('onReorderEnd');
+            },
+            proxyDecorator: (child, index, animation) {
+              return Container(
+                color: Colors.red.withOpacity(0.3),
+                height: 160,
+                child: child,
+              );
+            },
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton(
