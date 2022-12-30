@@ -50,6 +50,8 @@ import 'package:flutter/widgets.dart';
 ///    reorder its items.
 typedef ReorderCallback = void Function(int oldIndex, int newIndex);
 
+typedef MergeCallback = void Function(int folderIndex, int subIndex);
+
 /// Signature for the builder callback used to decorate the dragging item in
 /// [ReorderableList] and [SliverReorderableList].
 ///
@@ -417,6 +419,7 @@ class SliverReorderableList extends StatefulWidget {
     this.findChildIndexCallback,
     required this.itemCount,
     required this.onReorder,
+    this.onMerge,
     this.onReorderStart,
     this.onReorderEnd,
     this.itemExtent,
@@ -439,6 +442,8 @@ class SliverReorderableList extends StatefulWidget {
 
   /// {@macro flutter.widgets.reorderable_list.onReorder}
   final ReorderCallback onReorder;
+
+  final MergeCallback? onMerge;
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int)? onReorderStart;
@@ -713,18 +718,26 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
 
   void _dragEnd(_DragInfo item) {
     setState(() {
-      if (_insertIndex! < widget.itemCount - 1) {
-        // Find the location of the item we want to insert before
-        _finalDropPosition = _itemOffsetAt(_insertIndex! + (_reverse ? 1 : 0));
-      } else {
-        // Inserting into the last spot on the list. If it's the only spot, put
-        // it back where it was. Otherwise, grab the second to last and move
-        // down by the gap.
-        final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
-        if (_reverse) {
-          _finalDropPosition = _itemOffsetAt(itemIndex) - _extentOffset(item.itemExtent, _scrollDirection);
+      if (_reverse) {
+        if (_insertIndex! > 0) {
+          _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) - _extentOffset(item.itemExtent, _scrollDirection);
         } else {
-          _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(item.itemExtent, _scrollDirection);
+          final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
+          _finalDropPosition = _itemOffsetAt(_insertIndex!) +
+              _extentOffset(itemExtent, _scrollDirection) -
+              _extentOffset(item.itemExtent, _scrollDirection);
+        }
+      } else {
+        if (_insertIndex! < widget.itemCount - 1) {
+          // Find the location of the item we want to insert before
+          _finalDropPosition = _itemOffsetAt(_insertIndex!);
+        } else {
+          // Inserting into the last spot on the list. If it's the only spot, put
+          // it back where it was. Otherwise, grab the second to last and move
+          // down by the gap.
+          final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
+          final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+          _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
         }
       }
     });
@@ -746,8 +759,7 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
     if (_dragInfo != null) {
       if (_dragIndex != null && _items.containsKey(_dragIndex)) {
         final dragItem = _items[_dragIndex!]!;
-        dragItem._dragging = false;
-        dragItem.rebuild();
+        dragItem.dragging = false;
         _dragIndex = null;
       }
       _dragInfo?.dispose();
@@ -765,6 +777,7 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
   void _resetItemGap() {
     for (final item in _items.values) {
       item.resetGap();
+      item.merging = false;
     }
   }
 
@@ -781,6 +794,7 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
     assert(_dragInfo != null);
     final gapExtent = _dragInfo!.itemExtent;
     final proxyItemStart = _offsetExtent(_dragInfo!.dragPosition - _dragInfo!.dragOffset, _scrollDirection);
+    // ignore: unused_local_variable
     final proxyItemEnd = proxyItemStart + gapExtent;
 
     // Find the new index for inserting the item being dragged.
@@ -798,46 +812,47 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
         final transitionOffset = _extentOffset(_reverse ? -gapExtent : gapExtent, _scrollDirection);
         geometry = (geometry.topLeft - transitionOffset) & geometry.size;
       }
+      final position = _scrollDirection == Axis.vertical ? _dragInfo!.dragPosition.dy : _dragInfo!.dragPosition.dx;
       final itemStart = _scrollDirection == Axis.vertical ? geometry.top : geometry.left;
       final itemExtent = _scrollDirection == Axis.vertical ? geometry.height : geometry.width;
       final itemEnd = itemStart + itemExtent;
       final itemMiddle = itemStart + itemExtent / 2;
 
+      final mergable = item.mergable;
+      if (mergable) {
+        item.merging = itemEnd >= position && itemStart <= position;
+      }
       if (_reverse) {
-        if (itemEnd >= proxyItemEnd && proxyItemEnd >= itemMiddle) {
-          // The start of the proxy is in the beginning half of the item, so
-          // we should swap the item with the gap and we are done looking for
-          // the new index.
+        if (newIndex < (item.index + 1) && itemStart <= position && position <= itemMiddle) {
+          // Drag up
+          newIndex = item.index + 1;
+          break;
+        } else if (newIndex > item.index && itemMiddle <= position && position <= itemEnd) {
+          // Drag down
           newIndex = item.index;
           break;
-        } else if (itemMiddle >= proxyItemStart && proxyItemStart >= itemStart) {
-          // The end of the proxy is in the ending half of the item, so
-          // we should swap the item with the gap and we are done looking for
-          // the new index.
+        } else if (itemStart > position && newIndex < (item.index + 1)) {
+          // Drag up quickly
           newIndex = item.index + 1;
-          break;
-        } else if (itemStart > proxyItemEnd && newIndex < (item.index + 1)) {
-          newIndex = item.index + 1;
-        } else if (proxyItemStart > itemEnd && newIndex > item.index) {
+        } else if (position > itemEnd && newIndex > item.index) {
+          // Drag down quickly
           newIndex = item.index;
         }
       } else {
-        if (itemStart <= proxyItemStart && proxyItemStart <= itemMiddle) {
-          // The start of the proxy is in the beginning half of the item, so
-          // we should swap the item with the gap and we are done looking for
-          // the new index.
+        if (newIndex > item.index && itemStart <= position && position <= itemMiddle) {
+          // Drag up
           newIndex = item.index;
           break;
-        } else if (itemMiddle <= proxyItemEnd && proxyItemEnd <= itemEnd) {
-          // The end of the proxy is in the ending half of the item, so
-          // we should swap the item with the gap and we are done looking for
-          // the new index.
+        } else if (newIndex < (item.index + 1) && itemMiddle <= position && position <= itemEnd) {
+          // Drag down
           newIndex = item.index + 1;
           break;
-        } else if (itemEnd < proxyItemStart && newIndex < (item.index + 1)) {
-          newIndex = item.index + 1;
-        } else if (proxyItemEnd < itemStart && newIndex > item.index) {
+        } else if (position < itemStart && newIndex > item.index) {
+          // Drag up quickly
           newIndex = item.index;
+        } else if (itemEnd < position && newIndex < (item.index + 1)) {
+          // Drag down quickly
+          newIndex = item.index + 1;
         }
       }
     }
@@ -986,7 +1001,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   @override
   Widget build(BuildContext context) {
-    if (_dragging) {
+    if (dragging) {
       return const SizedBox();
     }
     _listState._registerItem(this);
@@ -1069,15 +1084,19 @@ class _ReorderableItemState extends State<_ReorderableItem> {
   }
 }
 
+typedef MergingBuilder = Widget Function(BuildContext context, Widget? child, bool merging);
+
 class MergableItem extends StatefulWidget {
   const MergableItem({
     super.key,
     this.enabled = true,
-    required this.child,
+    this.child,
+    required this.builder,
   });
 
   final bool enabled;
-  final Widget child;
+  final Widget? child;
+  final MergingBuilder builder;
 
   @override
   State<MergableItem> createState() => _MergableItemState();
@@ -1118,7 +1137,7 @@ class _MergableItemState extends State<MergableItem> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return widget.builder(context, widget.child, merging);
   }
 }
 

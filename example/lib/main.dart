@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart'
-    hide SliverReorderableList, ReorderableDragStartListener, ReorderableDelayedDragStartListener;
-import 'package:reorderable/reorderable.dart';
+import 'package:flutter/material.dart';
+import 'package:reorderable/reorderable.dart' as reorder;
 
 void main() {
   runApp(const MyApp());
@@ -50,21 +49,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  final data = List.generate(100, (index) => index);
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -79,56 +63,160 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverReorderableList(
-            itemBuilder: (context, int index) {
-              final item = data[index];
-              return ReorderableDelayedDragStartListener(
-                key: ValueKey(item),
-                index: index,
-                enabled: item % 2 == 1,
-                child: MergableItem(
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.all(8),
-                    color: item % 2 == 1 ? Colors.lightGreen : Colors.amber,
-                    child: Text('$item'),
+      body: Column(
+        children: [
+          const Expanded(child: SizedBox.shrink()),
+          Expanded(
+            flex: 4,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: const [
+                      Text('New', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: _ReorderListView()),
+                    ],
                   ),
                 ),
-              );
-            },
-            itemCount: data.length,
-            onReorder: (oldIndex, newIndex) {
-              print('$oldIndex -> $newIndex');
-              if (oldIndex < newIndex) {
-                // removing the item at oldIndex will shorten the list by 1.
-                newIndex -= 1;
-              }
-              final item = data.removeAt(oldIndex);
-              data.insert(newIndex, item);
-            },
-            onReorderStart: (p0) {
-              print('onReorderStart');
-            },
-            onReorderEnd: (p0) {
-              print('onReorderEnd');
-            },
-            proxyDecorator: (child, index, animation) {
-              return Container(
-                color: Colors.red.withOpacity(0.3),
-                height: 160,
-                child: child,
-              );
-            },
-          )
+                Expanded(
+                  child: Column(
+                    children: const [
+                      Text('Original', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: _OriginalReorderListView()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(child: SizedBox.shrink()),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class _ReorderListView extends StatefulWidget {
+  const _ReorderListView({Key? key}) : super(key: key);
+
+  @override
+  State<_ReorderListView> createState() => _ReorderListViewState();
+}
+
+class _ReorderListViewState extends State<_ReorderListView> {
+  final data = List.generate(11, (index) => index);
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      // reverse: true,
+      slivers: [
+        reorder.SliverReorderableList(
+          itemBuilder: (context, int index) {
+            final item = data[index];
+            return reorder.ReorderableDelayedDragStartListener(
+              key: ValueKey(item),
+              index: index,
+              // enabled: item % 2 == 0,
+              child: reorder.MergableItem(
+                enabled: item % 2 == 1,
+                builder: (context, child, merging) {
+                  final height = 48.0 + item * 10.0;
+                  return Container(
+                    height: height,
+                    alignment: Alignment.center,
+                    color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(merging ? 1.0 : 0.6),
+                    child: Text('$item: $height'),
+                  );
+                },
+              ),
+            );
+          },
+          itemCount: data.length,
+          onReorder: (oldIndex, newIndex) {
+            debugPrint('onReorder: $oldIndex -> $newIndex');
+            if (oldIndex < newIndex) {
+              // removing the item at oldIndex will shorten the list by 1.
+              newIndex -= 1;
+            }
+            final item = data.removeAt(oldIndex);
+            data.insert(newIndex, item);
+          },
+          onReorderStart: (p0) {
+            debugPrint('onReorderStart');
+          },
+          onReorderEnd: (p0) {
+            debugPrint('onReorderEnd');
+          },
+          proxyDecorator: (child, index, animation) {
+            return Container(
+              color: Colors.red.withOpacity(0.3),
+              height: 160,
+              child: child,
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _OriginalReorderListView extends StatefulWidget {
+  const _OriginalReorderListView({Key? key}) : super(key: key);
+
+  @override
+  State<_OriginalReorderListView> createState() => _OriginalReorderListViewState();
+}
+
+class _OriginalReorderListViewState extends State<_OriginalReorderListView> {
+  final data = List.generate(11, (index) => index);
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      reverse: true,
+      slivers: [
+        SliverReorderableList(
+          itemBuilder: (context, int index) {
+            final item = data[index];
+            final height = 48.0 + item * 10.0;
+            return ReorderableDelayedDragStartListener(
+              key: ValueKey(item),
+              index: index,
+              // enabled: item % 2 == 0,
+              child: Container(
+                height: height,
+                alignment: Alignment.center,
+                color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(0.8),
+                child: Text('$item: $height'),
+              ),
+            );
+          },
+          itemCount: data.length,
+          onReorder: (oldIndex, newIndex) {
+            debugPrint('$oldIndex -> $newIndex');
+            if (oldIndex < newIndex) {
+              // removing the item at oldIndex will shorten the list by 1.
+              newIndex -= 1;
+            }
+            final item = data.removeAt(oldIndex);
+            data.insert(newIndex, item);
+          },
+          onReorderStart: (p0) {
+            debugPrint('onReorderStart');
+          },
+          onReorderEnd: (p0) {
+            debugPrint('onReorderEnd');
+          },
+          proxyDecorator: (child, index, animation) {
+            return Container(
+              color: Colors.red.withOpacity(0.3),
+              height: 160,
+              child: child,
+            );
+          },
+        ),
+      ],
     );
   }
 }
