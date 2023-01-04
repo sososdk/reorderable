@@ -716,28 +716,75 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
     });
   }
 
+  MapEntry<int, _ReorderableItemState>? _mergingEntry() {
+    for (final childEntry in _items.entries) {
+      if (childEntry.value.merging) {
+        return childEntry;
+      }
+    }
+    return null;
+  }
+
   void _dragEnd(_DragInfo item) {
     setState(() {
-      if (_reverse) {
-        if (_insertIndex! > 0) {
-          _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) - _extentOffset(item.itemExtent, _scrollDirection);
+      final mergingEntry = _mergingEntry();
+      if (mergingEntry == null) {
+        if (_reverse) {
+          if (_insertIndex! > 0) {
+            _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) - _extentOffset(item.itemExtent, _scrollDirection);
+          } else {
+            final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(_insertIndex!) +
+                _extentOffset(itemExtent, _scrollDirection) -
+                _extentOffset(item.itemExtent, _scrollDirection);
+          }
         } else {
-          final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
-          _finalDropPosition = _itemOffsetAt(_insertIndex!) +
-              _extentOffset(itemExtent, _scrollDirection) -
-              _extentOffset(item.itemExtent, _scrollDirection);
+          if (_insertIndex! < widget.itemCount - 1) {
+            // Find the location of the item we want to insert before
+            _finalDropPosition = _itemOffsetAt(_insertIndex!);
+          } else {
+            // Inserting into the last spot on the list. If it's the only spot, put
+            // it back where it was. Otherwise, grab the second to last and move
+            // down by the gap.
+            final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
+            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
+          }
         }
       } else {
-        if (_insertIndex! < widget.itemCount - 1) {
-          // Find the location of the item we want to insert before
-          _finalDropPosition = _itemOffsetAt(_insertIndex!);
+        final itemIndex = mergingEntry.key;
+        if (_reverse) {
+          if (_insertIndex! > 0) {
+            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) -
+                _extentOffset(item.itemExtent, _scrollDirection) -
+                _extentOffset(itemExtent, _scrollDirection) -
+                Offset.zero;
+          } else {
+            final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(_insertIndex!) +
+                _extentOffset(itemExtent, _scrollDirection) -
+                _extentOffset(item.itemExtent, _scrollDirection);
+          }
         } else {
-          // Inserting into the last spot on the list. If it's the only spot, put
-          // it back where it was. Otherwise, grab the second to last and move
-          // down by the gap.
-          final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
-          final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
-          _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
+          if (_insertIndex! < widget.itemCount - 1) {
+            // Find the location of the item we want to insert before
+            print('$itemIndex > $_insertIndex');
+            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(itemIndex);
+            if (itemIndex >= _insertIndex!) {
+              // 目标在下方时, 目标位置加上 拖拽物 的高度
+              _finalDropPosition = _finalDropPosition! + _extentOffset(item.itemExtent, _scrollDirection);
+            }
+            // 居中?
+          } else {
+            // Inserting into the last spot on the list. If it's the only spot, put
+            // it back where it was. Otherwise, grab the second to last and move
+            // down by the gap.
+            final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
+            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+            _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
+          }
         }
       }
     });
@@ -745,10 +792,15 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
   }
 
   void _dropCompleted() {
-    final fromIndex = _dragIndex!;
-    final toIndex = _insertIndex!;
-    if (fromIndex != toIndex) {
-      widget.onReorder.call(fromIndex, toIndex);
+    final mergingEntry = _mergingEntry();
+    if (mergingEntry == null) {
+      final fromIndex = _dragIndex!;
+      final toIndex = _insertIndex!;
+      if (fromIndex != toIndex) {
+        widget.onReorder.call(fromIndex, toIndex);
+      }
+    } else {
+      widget.onMerge?.call(mergingEntry.key, _dragIndex!);
     }
     setState(() {
       _dragReset();

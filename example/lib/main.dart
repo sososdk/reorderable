@@ -65,24 +65,23 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          const Expanded(child: SizedBox.shrink()),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     children: const [
-                      Text('New', style: TextStyle(fontWeight: FontWeight.bold)),
                       Expanded(child: _ReorderListView()),
+                      Text('New', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Column(
                     children: const [
-                      Text('Original', style: TextStyle(fontWeight: FontWeight.bold)),
                       Expanded(child: _OriginalReorderListView()),
+                      Text('Original', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -141,6 +140,11 @@ class _ReorderListViewState extends State<_ReorderListView> {
             }
             final item = data.removeAt(oldIndex);
             data.insert(newIndex, item);
+          },
+          onMerge: (folderIndex, subIndex) {
+            setState(() {
+              data.removeAt(subIndex);
+            });
           },
           onReorderStart: (p0) {
             debugPrint('onReorderStart');
