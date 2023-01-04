@@ -50,8 +50,6 @@ import 'package:flutter/widgets.dart';
 ///    reorder its items.
 typedef ReorderCallback = void Function(int oldIndex, int newIndex);
 
-typedef MergeCallback = void Function(int folderIndex, int subIndex);
-
 /// Signature for the builder callback used to decorate the dragging item in
 /// [ReorderableList] and [SliverReorderableList].
 ///
@@ -419,7 +417,6 @@ class SliverReorderableList extends StatefulWidget {
     this.findChildIndexCallback,
     required this.itemCount,
     required this.onReorder,
-    this.onMerge,
     this.onReorderStart,
     this.onReorderEnd,
     this.itemExtent,
@@ -442,8 +439,6 @@ class SliverReorderableList extends StatefulWidget {
 
   /// {@macro flutter.widgets.reorderable_list.onReorder}
   final ReorderCallback onReorder;
-
-  final MergeCallback? onMerge;
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int)? onReorderStart;
@@ -716,75 +711,28 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
     });
   }
 
-  MapEntry<int, _ReorderableItemState>? _mergingEntry() {
-    for (final childEntry in _items.entries) {
-      if (childEntry.value.merging) {
-        return childEntry;
-      }
-    }
-    return null;
-  }
-
   void _dragEnd(_DragInfo item) {
     setState(() {
-      final mergingEntry = _mergingEntry();
-      if (mergingEntry == null) {
-        if (_reverse) {
-          if (_insertIndex! > 0) {
-            _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) - _extentOffset(item.itemExtent, _scrollDirection);
-          } else {
-            final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(_insertIndex!) +
-                _extentOffset(itemExtent, _scrollDirection) -
-                _extentOffset(item.itemExtent, _scrollDirection);
-          }
+      if (_reverse) {
+        if (_insertIndex! > 0) {
+          _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) - _extentOffset(item.itemExtent, _scrollDirection);
         } else {
-          if (_insertIndex! < widget.itemCount - 1) {
-            // Find the location of the item we want to insert before
-            _finalDropPosition = _itemOffsetAt(_insertIndex!);
-          } else {
-            // Inserting into the last spot on the list. If it's the only spot, put
-            // it back where it was. Otherwise, grab the second to last and move
-            // down by the gap.
-            final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
-            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
-          }
+          final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
+          _finalDropPosition = _itemOffsetAt(_insertIndex!) +
+              _extentOffset(itemExtent, _scrollDirection) -
+              _extentOffset(item.itemExtent, _scrollDirection);
         }
       } else {
-        final itemIndex = mergingEntry.key;
-        if (_reverse) {
-          if (_insertIndex! > 0) {
-            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(_insertIndex! - 1) -
-                _extentOffset(item.itemExtent, _scrollDirection) -
-                _extentOffset(itemExtent, _scrollDirection) -
-                Offset.zero;
-          } else {
-            final itemExtent = _sizeExtent(_items[0]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(_insertIndex!) +
-                _extentOffset(itemExtent, _scrollDirection) -
-                _extentOffset(item.itemExtent, _scrollDirection);
-          }
+        if (_insertIndex! < widget.itemCount - 1) {
+          // Find the location of the item we want to insert before
+          _finalDropPosition = _itemOffsetAt(_insertIndex!);
         } else {
-          if (_insertIndex! < widget.itemCount - 1) {
-            // Find the location of the item we want to insert before
-            print('$itemIndex > $_insertIndex');
-            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(itemIndex);
-            if (itemIndex >= _insertIndex!) {
-              // 目标在下方时, 目标位置加上 拖拽物 的高度
-              _finalDropPosition = _finalDropPosition! + _extentOffset(item.itemExtent, _scrollDirection);
-            }
-            // 居中?
-          } else {
-            // Inserting into the last spot on the list. If it's the only spot, put
-            // it back where it was. Otherwise, grab the second to last and move
-            // down by the gap.
-            final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
-            final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
-            _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
-          }
+          // Inserting into the last spot on the list. If it's the only spot, put
+          // it back where it was. Otherwise, grab the second to last and move
+          // down by the gap.
+          final itemIndex = _items.length > 1 ? _insertIndex! - 1 : _insertIndex!;
+          final itemExtent = _sizeExtent(_items[itemIndex]!.context.size!, _scrollDirection);
+          _finalDropPosition = _itemOffsetAt(itemIndex) + _extentOffset(itemExtent, _scrollDirection);
         }
       }
     });
@@ -792,15 +740,10 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
   }
 
   void _dropCompleted() {
-    final mergingEntry = _mergingEntry();
-    if (mergingEntry == null) {
-      final fromIndex = _dragIndex!;
-      final toIndex = _insertIndex!;
-      if (fromIndex != toIndex) {
-        widget.onReorder.call(fromIndex, toIndex);
-      }
-    } else {
-      widget.onMerge?.call(mergingEntry.key, _dragIndex!);
+    final fromIndex = _dragIndex!;
+    final toIndex = _insertIndex!;
+    if (fromIndex != toIndex) {
+      widget.onReorder.call(fromIndex, toIndex);
     }
     setState(() {
       _dragReset();
@@ -829,7 +772,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
   void _resetItemGap() {
     for (final item in _items.values) {
       item.resetGap();
-      item.merging = false;
     }
   }
 
@@ -870,10 +812,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
       final itemEnd = itemStart + itemExtent;
       final itemMiddle = itemStart + itemExtent / 2;
 
-      final mergable = item.mergable;
-      if (mergable) {
-        item.merging = itemEnd >= position && itemStart <= position;
-      }
       if (_reverse) {
         if (newIndex < (item.index + 1) && itemStart <= position && position <= itemMiddle) {
           // Drag up
@@ -1015,19 +953,6 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   bool _dragging = false;
 
-  _MergableItemState? __mergableItemState;
-
-  set _mergableItemState(_MergableItemState? value) {
-    assert(__mergableItemState == null || value == null);
-    __mergableItemState = value;
-  }
-
-  bool get mergable => __mergableItemState?.mergable ?? false;
-
-  bool get merging => __mergableItemState?.merging ?? false;
-
-  set merging(bool merging) => __mergableItemState?.merging = merging;
-
   @override
   void initState() {
     _listState = SliverReorderableList.of(context);
@@ -1133,63 +1058,6 @@ class _ReorderableItemState extends State<_ReorderableItem> {
     if (mounted) {
       setState(() {});
     }
-  }
-}
-
-typedef MergingBuilder = Widget Function(BuildContext context, Widget? child, bool merging);
-
-class MergableItem extends StatefulWidget {
-  const MergableItem({
-    super.key,
-    this.enabled = true,
-    this.child,
-    required this.builder,
-  });
-
-  final bool enabled;
-  final Widget? child;
-  final MergingBuilder builder;
-
-  @override
-  State<MergableItem> createState() => _MergableItemState();
-}
-
-class _MergableItemState extends State<MergableItem> {
-  _ReorderableItemState? _reorderableItemState;
-
-  bool get mergable => widget.enabled;
-
-  bool get merging => _merging;
-
-  set merging(bool merging) {
-    if (mounted) {
-      setState(() {
-        _merging = merging;
-      });
-    }
-  }
-
-  bool _merging = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final state = context.findAncestorStateOfType<_ReorderableItemState>();
-    if (state != null) {
-      state._mergableItemState = this;
-      _reorderableItemState = state;
-    }
-  }
-
-  @override
-  void dispose() {
-    _reorderableItemState?._mergableItemState = null;
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return widget.builder(context, widget.child, merging);
   }
 }
 

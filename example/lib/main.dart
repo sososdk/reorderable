@@ -113,21 +113,16 @@ class _ReorderListViewState extends State<_ReorderListView> {
         reorder.SliverReorderableList(
           itemBuilder: (context, int index) {
             final item = data[index];
+            final height = 48.0 + item * 10.0;
             return reorder.ReorderableDelayedDragStartListener(
               key: ValueKey(item),
               index: index,
               // enabled: item % 2 == 0,
-              child: reorder.MergableItem(
-                enabled: item % 2 == 1,
-                builder: (context, child, merging) {
-                  final height = 48.0 + item * 10.0;
-                  return Container(
-                    height: height,
-                    alignment: Alignment.center,
-                    color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(merging ? 1.0 : 0.6),
-                    child: Text('$item: $height'),
-                  );
-                },
+              child: Container(
+                height: height,
+                alignment: Alignment.center,
+                color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(0.6),
+                child: Text('$item: $height'),
               ),
             );
           },
@@ -140,11 +135,6 @@ class _ReorderListViewState extends State<_ReorderListView> {
             }
             final item = data.removeAt(oldIndex);
             data.insert(newIndex, item);
-          },
-          onMerge: (folderIndex, subIndex) {
-            setState(() {
-              data.removeAt(subIndex);
-            });
           },
           onReorderStart: (p0) {
             debugPrint('onReorderStart');
