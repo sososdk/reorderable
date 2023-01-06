@@ -22,6 +22,6 @@ linter:
     omit_local_variable_types: true
     prefer_const_constructors: true
     use_key_in_widget_constructors: true
-    lines_longer_than_80_chars: true
+    lines_longer_than_80_chars: false
     avoid_types_on_closure_parameters: true
     depend_on_referenced_packages: false

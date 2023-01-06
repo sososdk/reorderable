@@ -73,15 +73,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Column(
                     children: const [
                       Expanded(child: _ReorderListView()),
-                      Text('New', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('List', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Column(
                     children: const [
-                      Expanded(child: _OriginalReorderListView()),
-                      Text('Original', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: _ReorderGridView()),
+                      Text('Grid', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -129,10 +129,6 @@ class _ReorderListViewState extends State<_ReorderListView> {
           itemCount: data.length,
           onReorder: (oldIndex, newIndex) {
             debugPrint('onReorder: $oldIndex -> $newIndex');
-            if (oldIndex < newIndex) {
-              // removing the item at oldIndex will shorten the list by 1.
-              newIndex -= 1;
-            }
             final item = data.removeAt(oldIndex);
             data.insert(newIndex, item);
           },
@@ -155,44 +151,39 @@ class _ReorderListViewState extends State<_ReorderListView> {
   }
 }
 
-class _OriginalReorderListView extends StatefulWidget {
-  const _OriginalReorderListView({Key? key}) : super(key: key);
+class _ReorderGridView extends StatefulWidget {
+  const _ReorderGridView({Key? key}) : super(key: key);
 
   @override
-  State<_OriginalReorderListView> createState() => _OriginalReorderListViewState();
+  State<_ReorderGridView> createState() => _ReorderGridViewState();
 }
 
-class _OriginalReorderListViewState extends State<_OriginalReorderListView> {
-  final data = List.generate(11, (index) => index);
+class _ReorderGridViewState extends State<_ReorderGridView> {
+  final data = List.generate(30, (index) => index);
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
-      reverse: true,
+      // reverse: true,
       slivers: [
-        SliverReorderableList(
+        reorder.SliverReorderableGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.618),
           itemBuilder: (context, int index) {
             final item = data[index];
-            final height = 48.0 + item * 10.0;
-            return ReorderableDelayedDragStartListener(
+            return reorder.ReorderableDelayedDragStartListener(
               key: ValueKey(item),
               index: index,
               // enabled: item % 2 == 0,
               child: Container(
-                height: height,
                 alignment: Alignment.center,
-                color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(0.8),
-                child: Text('$item: $height'),
+                color: (item % 2 == 0 ? Colors.green : Colors.amber).withOpacity(0.6),
+                child: Text('$item'),
               ),
             );
           },
           itemCount: data.length,
           onReorder: (oldIndex, newIndex) {
-            debugPrint('$oldIndex -> $newIndex');
-            if (oldIndex < newIndex) {
-              // removing the item at oldIndex will shorten the list by 1.
-              newIndex -= 1;
-            }
+            debugPrint('onReorder: $oldIndex -> $newIndex');
             final item = data.removeAt(oldIndex);
             data.insert(newIndex, item);
           },
