@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:reorderable/reorderable.dart' as reorder;
+import 'package:reorderable_plus/reorderable.dart' as reorder;
 
 void main() {
   runApp(const MyApp());

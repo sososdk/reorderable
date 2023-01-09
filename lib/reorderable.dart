@@ -1,4 +1,4 @@
-library reorderable;
+library reorderable_plus;
 
 import 'dart:math';
 

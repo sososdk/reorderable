@@ -102,7 +102,7 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.8.2"
-  reorderable:
+  reorderable_plus:
     dependency: "direct main"
     description:
       path: ".."
