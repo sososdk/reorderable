@@ -301,74 +301,27 @@ class ReorderableList extends StatefulWidget {
           'You can only pass itemExtent or prototypeItem, not both',
         );
 
-  /// {@template flutter.widgets.reorderable_list.itemBuilder}
-  /// Called, as needed, to build list item widgets.
-  ///
-  /// List items are only built when they're scrolled into view.
-  ///
-  /// The [IndexedWidgetBuilder] index parameter indicates the item's
-  /// position in the list. The value of the index parameter will be between
-  /// zero and one less than [itemCount]. All items in the list must have a
-  /// unique [Key], and should have some kind of listener to start the drag
-  /// (usually a [ReorderableDragStartListener] or
-  /// [ReorderableDelayedDragStartListener]).
-  /// {@endtemplate}
+  /// {@macro reorderable.itemBuilder}
   final IndexedWidgetBuilder itemBuilder;
 
-  /// {@template flutter.widgets.reorderable_list.itemCount}
-  /// The number of items in the list.
-  ///
-  /// It must be a non-negative integer. When zero, nothing is displayed and
-  /// the widget occupies no space.
-  /// {@endtemplate}
+  /// {@macro reorderable.itemCount}
   final int itemCount;
 
-  /// {@template flutter.widgets.reorderable_list.onReorder}
-  /// A callback used by the list to report that a list item has been dragged
-  /// to a new location in the list and the application should update the order
-  /// of the items.
-  /// {@endtemplate}
+  /// {@macro reorderable.onReorder}
   final ReorderCallback onReorder;
 
-  /// {@template flutter.widgets.reorderable_list.onReorderStart}
-  /// A callback that is called when an item drag has started.
-  ///
-  /// The index parameter of the callback is the index of the selected item.
-  ///
-  /// See also:
-  ///
-  ///   * [onReorderEnd], which is a called when the dragged item is dropped.
-  ///   * [onReorder], which reports that a list item has been dragged to a new
-  ///     location.
-  /// {@endtemplate}
+  /// {@macro reorderable.onReorderStart}
   final void Function(int index)? onReorderStart;
 
-  /// {@template flutter.widgets.reorderable_list.onReorderEnd}
-  /// A callback that is called when the dragged item is dropped.
-  ///
-  /// The index parameter of the callback is the index where the item is
-  /// dropped. Unlike [onReorder], this is called even when the list item is
-  /// dropped in the same location.
-  ///
-  /// See also:
-  ///
-  ///   * [onReorderStart], which is a called when an item drag has started.
-  ///   * [onReorder], which reports that a list item has been dragged to a new
-  ///     location.
-  /// {@endtemplate}
+  /// {@macro reorderable.onReorderEnd}
   final void Function(int index)? onReorderEnd;
 
-  /// {@template flutter.widgets.reorderable_list.proxyDecorator}
-  /// A callback that allows the app to add an animated decoration around
-  /// an item when it is being dragged.
-  /// {@endtemplate}
+  /// {@macro reorderable.proxyDecorator}
   final ReorderItemProxyDecorator? proxyDecorator;
 
-  /// {@template flutter.widgets.reorderable_list.padding}
   /// The amount of space by which to inset the list contents.
   ///
   /// It defaults to `EdgeInsets.all(0)`.
-  /// {@endtemplate}
   final EdgeInsetsGeometry? padding;
 
   /// {@macro flutter.widgets.scroll_view.scrollDirection}
@@ -441,12 +394,8 @@ class ReorderableList extends StatefulWidget {
           ErrorDescription(
             'No ReorderableList ancestor could be found starting from the context that was passed to ReorderableList.of().',
           ),
-          ErrorHint(
-            'This can happen when the context provided is from the same StatefulWidget that '
-            'built the ReorderableList. Please see the ReorderableList documentation for examples '
-            'of how to refer to an ReorderableListState object:\n'
-            '  https://api.flutter.dev/flutter/widgets/ReorderableListState-class.html',
-          ),
+          ErrorHint('This can happen when the context provided is from the same StatefulWidget that '
+              'built the ReorderableList.'),
           context.describeElement('The context used was'),
         ]);
       }

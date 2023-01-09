@@ -78,25 +78,70 @@ abstract class SliverReorderable extends StatefulWidget {
     this.proxyDecorator,
   }) : assert(itemCount >= 0);
 
-  /// {@macro flutter.widgets.reorderable_list.itemBuilder}
+  /// {@template reorderable.itemBuilder}
+  /// Called, as needed, to build list item widgets.
+  ///
+  /// List items are only built when they're scrolled into view.
+  ///
+  /// The [IndexedWidgetBuilder] index parameter indicates the item's
+  /// position in the list. The value of the index parameter will be between
+  /// zero and one less than [itemCount]. All items in the list must have a
+  /// unique [Key], and should have some kind of listener to start the drag
+  /// (usually a [ReorderableDragStartListener] or
+  /// [ReorderableDelayedDragStartListener]).
+  /// {@endtemplate}
   final IndexedWidgetBuilder itemBuilder;
 
   /// {@macro flutter.widgets.SliverChildBuilderDelegate.findChildIndexCallback}
   final ChildIndexGetter? findChildIndexCallback;
 
-  /// {@macro flutter.widgets.reorderable_list.itemCount}
+  /// {@template reorderable.itemCount}
+  /// The number of items in the list.
+  ///
+  /// It must be a non-negative integer. When zero, nothing is displayed and
+  /// the widget occupies no space.
+  /// {@endtemplate}
   final int itemCount;
 
-  /// {@macro flutter.widgets.reorderable_list.onReorder}
+  /// {@template reorderable.onReorder}
+  /// A callback used by the list to report that a list item has been dragged
+  /// to a new location in the list and the application should update the order
+  /// of the items.
+  /// {@endtemplate}
   final ReorderCallback onReorder;
 
-  /// {@macro flutter.widgets.reorderable_list.onReorderStart}
+  /// {@template reorderable.onReorderStart}
+  /// A callback that is called when an item drag has started.
+  ///
+  /// The index parameter of the callback is the index of the selected item.
+  ///
+  /// See also:
+  ///
+  ///   * [onReorderEnd], which is a called when the dragged item is dropped.
+  ///   * [onReorder], which reports that a list item has been dragged to a new
+  ///     location.
+  /// {@endtemplate}
   final void Function(int)? onReorderStart;
 
-  /// {@macro flutter.widgets.reorderable_list.onReorderEnd}
+  /// {@template reorderable.onReorderEnd}
+  /// A callback that is called when the dragged item is dropped.
+  ///
+  /// The index parameter of the callback is the index where the item is
+  /// dropped. Unlike [onReorder], this is called even when the list item is
+  /// dropped in the same location.
+  ///
+  /// See also:
+  ///
+  ///   * [onReorderStart], which is a called when an item drag has started.
+  ///   * [onReorder], which reports that a list item has been dragged to a new
+  ///     location.
+  /// {@endtemplate}
   final void Function(int)? onReorderEnd;
 
-  /// {@macro flutter.widgets.reorderable_list.proxyDecorator}
+  /// {@template reorderable.proxyDecorator}
+  /// A callback that allows the app to add an animated decoration around
+  /// an item when it is being dragged.
+  /// {@endtemplate}
   final ReorderItemProxyDecorator? proxyDecorator;
 
   @override
