@@ -118,17 +118,11 @@ class _SliverReorderableGridState extends SliverReorderableState<SliverReorderab
 
     var newIndex = _insertIndex!;
     for (final item in _items.values) {
-      if (item.index == _dragIndex! || !item.mounted) {
-        continue;
-      }
-
-      for (var item in _items.values) {
-        final renderBox = item.context.findRenderObject() as RenderBox;
-        final size = renderBox.size;
-        final position = renderBox.globalToLocal(_dragInfo!.dragPosition);
-        if (position.dx > 0 && position.dy > 0 && position.dx < size.width && position.dy < size.height) {
-          newIndex = item.index;
-        }
+      final renderBox = item.context.findRenderObject() as RenderBox;
+      final rect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+      if (rect.contains(_dragInfo!.dragPosition)) {
+        newIndex = item.index;
+        break;
       }
     }
 
