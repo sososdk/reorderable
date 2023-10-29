@@ -76,7 +76,12 @@ abstract class SliverReorderable extends StatefulWidget {
     this.onReorderStart,
     this.onReorderEnd,
     this.proxyDecorator,
-  }) : assert(itemCount >= 0);
+    double? autoScrollerVelocityScalar,
+  })  : autoScrollerVelocityScalar = autoScrollerVelocityScalar ?? _kDefaultAutoScrollVelocityScalar,
+        assert(itemCount >= 0);
+
+  // An eyeballed value for a smooth scrolling experience.
+  static const double _kDefaultAutoScrollVelocityScalar = 50;
 
   /// {@template reorderable.itemBuilder}
   /// Called, as needed, to build list item widgets.
@@ -143,6 +148,13 @@ abstract class SliverReorderable extends StatefulWidget {
   /// an item when it is being dragged.
   /// {@endtemplate}
   final ReorderItemProxyDecorator? proxyDecorator;
+
+  /// {@macro flutter.widgets.EdgeDraggingAutoScroller.velocityScalar}
+  ///
+  /// {@template flutter.widgets.SliverReorderableList.autoScrollerVelocityScalar.default}
+  /// Defaults to 50 if not set or set to null.
+  /// {@endtemplate}
+  final double autoScrollerVelocityScalar;
 
   @override
   SliverReorderableState<SliverReorderable> createState();
@@ -241,10 +253,14 @@ abstract class SliverReorderableState<T extends SliverReorderable> extends State
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scrollable = Scrollable.of(context)!;
+    _scrollable = Scrollable.of(context);
     if (_autoScroller?.scrollable != _scrollable) {
       _autoScroller?.stopAutoScroll();
-      _autoScroller = EdgeDraggingAutoScroller(_scrollable, onScrollViewScrolled: _handleScrollableAutoScrolled);
+      _autoScroller = EdgeDraggingAutoScroller(
+        _scrollable,
+        onScrollViewScrolled: _handleScrollableAutoScrolled,
+        velocityScalar: widget.autoScrollerVelocityScalar,
+      );
     }
   }
 
@@ -253,6 +269,15 @@ abstract class SliverReorderableState<T extends SliverReorderable> extends State
     super.didUpdateWidget(oldWidget);
     if (widget.itemCount != oldWidget.itemCount) {
       cancelReorder();
+    }
+
+    if (widget.autoScrollerVelocityScalar != oldWidget.autoScrollerVelocityScalar) {
+      _autoScroller?.stopAutoScroll();
+      _autoScroller = EdgeDraggingAutoScroller(
+        _scrollable,
+        onScrollViewScrolled: _handleScrollableAutoScrolled,
+        velocityScalar: widget.autoScrollerVelocityScalar,
+      );
     }
   }
 
@@ -347,7 +372,7 @@ abstract class SliverReorderableState<T extends SliverReorderable> extends State
     _dragInfo = _createDragInfo(item, position);
     _dragInfo!.startDrag();
 
-    final overlay = Overlay.of(context)!;
+    final overlay = Overlay.of(context);
     assert(_overlayEntry == null);
     _overlayEntry = OverlayEntry(builder: _dragInfo!.createProxy);
     overlay.insert(_overlayEntry!);
@@ -434,7 +459,7 @@ abstract class SliverReorderableState<T extends SliverReorderable> extends State
     }
     final child = widget.itemBuilder(context, index);
     assert(child.key != null, 'All list items must have a key');
-    final overlay = Overlay.of(context)!;
+    final overlay = Overlay.of(context);
     return _createReorderableItem(child.key!, index, overlay.context, child);
   }
 }
@@ -800,7 +825,7 @@ abstract class _DragInfo extends Drag {
 }
 
 Offset _overlayOrigin(BuildContext context) {
-  final overlay = Overlay.of(context)!;
+  final overlay = Overlay.of(context);
   final overlayBox = overlay.context.findRenderObject()! as RenderBox;
   return overlayBox.localToGlobal(Offset.zero);
 }

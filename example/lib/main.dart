@@ -63,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Column(
+      body: const Column(
         children: [
           Expanded(
             flex: 5,
@@ -71,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 Expanded(
                   child: Column(
-                    children: const [
+                    children: [
                       Expanded(child: _ReorderListView()),
                       Text('List', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
@@ -79,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Expanded(
                   child: Column(
-                    children: const [
+                    children: [
                       Expanded(child: _ReorderGridView()),
                       Text('Grid', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
@@ -88,7 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
           ),
-          const Expanded(child: SizedBox.shrink()),
+          Expanded(child: SizedBox.shrink()),
         ],
       ),
     );

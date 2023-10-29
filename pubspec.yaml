@@ -1,11 +1,11 @@
 name: reorderable_plus
 description: A reorderable list and grid package.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/sososdk/reorderable
 
 environment:
   sdk: '>=2.18.5 <3.0.0'
-  flutter: ">=1.17.0"
+  flutter: ">=3.13.0"
 
 dependencies:
   flutter:
